@@ -17,7 +17,10 @@ async def handle_twilio_stream(ws: WebSocket) -> None:
     async def on_transcript(kind: str, text: str) -> None:
         # "kind" is partial/committed
         if text.strip():
-            print(f"[{call_sid}] {kind.upper()}: {text}")
+            if kind == "partial":
+                print(f"\r[{call_sid}] PARTIAL: {text}", end="", flush=True)
+            else:
+                print(f"\r[{call_sid}] COMMITTED: {text}")
 
     try:
         while True:
