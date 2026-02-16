@@ -4,14 +4,15 @@ from typing import Optional
 from fastapi import WebSocket, WebSocketDisconnect
 
 from app.schemas.twilio_stream import TwilioWsEvent
-from app.services.stt.elevenlabs import ElevenLabsRealtimeClient
+from app.services.stt.base import RealtimeSttClient
+from app.services.stt.factory import SttFactory
 
 
 async def handle_twilio_stream(ws: WebSocket) -> None:
     await ws.accept()
 
     call_sid = "unknown"
-    stt = None  # type: Optional[ElevenLabsRealtimeClient]
+    stt = None  # type: Optional[RealtimeSttClient]
     recv_task: Optional[asyncio.Task] = None
 
     async def on_transcript(kind: str, text: str) -> None:
@@ -36,9 +37,9 @@ async def handle_twilio_stream(ws: WebSocket) -> None:
                 call_sid = (event.start.callSid if event.start else None) or "unknown"
                 print(f"[{call_sid}] Twilio stream started")
 
-                stt = ElevenLabsRealtimeClient()
+                stt = SttFactory.get_client()
                 stt.set_on_transcript(on_transcript)
-                await stt.connect()
+                # await stt.connect() # removed by user request (implicit connection)
 
                 recv_task = asyncio.create_task(stt.run_receive_loop())
 

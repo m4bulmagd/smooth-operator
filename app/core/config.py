@@ -13,5 +13,12 @@ class Settings(BaseSettings):
     elevenlabs_commit_strategy: str = "vad"
     elevenlabs_include_timestamps: bool = False
 
+    # Mistral settings
+    mistral_api_key: str = ""
+    mistral_model: str = "voxtral-mini-transcribe-realtime-2602"
+
+    # STT Provider
+    stt_provider: str = "mistral"  # "elevenlabs" or "mistral"
+
 
 settings = Settings()
