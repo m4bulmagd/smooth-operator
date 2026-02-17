@@ -26,7 +26,7 @@ Follow these instructions to set up the project for **Chapter 1**.
 *   **[uv](https://docs.astral.sh/uv/)** (recommended for dependency management) or pip
 *   **[Twilio Account](https://www.twilio.com/)** (with a phone number)
 *   **[Ngrok](https://ngrok.com/)** (to expose your local server)
-*   **[ElevenLabs API Key](https://elevenlabs.io/)** (for STT)
+*   **[ElevenLabs API Key](https://elevenlabs.io/)** or **[Mistral API Key](https://mistral.ai/)** (for STT) 
 
 ### 🛠️ Installation
 
@@ -96,4 +96,4 @@ Follow these instructions to set up the project for **Chapter 1**.
 *   `app/main.py`: Entry point for the FastAPI application.
 *   `app/api/routes/twilio.py`: Handles Twilio webhooks and WebSocket upgrades.
 *   `app/services/twilio/stream.py`: Manages the WebSocket media stream and audio buffering.
-*   `app/services/stt/elevenlabs.py`: Integrates with ElevenLabs Realtime STT API.
+*   `app/services/stt/`: Integrates with selected STT provider.
