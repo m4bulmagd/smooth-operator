@@ -26,7 +26,6 @@ async def handle_twilio_stream(ws: WebSocket) -> None:
     try:
         while True:
             msg_text = await ws.receive_text()
-
             event = TwilioWsEvent.model_validate_json(msg_text)
 
             if event.event == "connected":
@@ -39,7 +38,6 @@ async def handle_twilio_stream(ws: WebSocket) -> None:
 
                 stt = SttFactory.get_client()
                 stt.set_on_transcript(on_transcript)
-                # await stt.connect() # removed by user request (implicit connection)
 
                 recv_task = asyncio.create_task(stt.run_receive_loop())
 

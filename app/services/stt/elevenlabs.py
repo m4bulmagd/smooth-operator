@@ -62,11 +62,6 @@ class ElevenLabsRealtimeClient(RealtimeSttClient):
                 "committed_transcript",
                 lambda data: handle_transcript(data, "committed"),
             )
-            # connection.on("open", lambda _: print("DEBUG: Session Open"))  # DEBUG
-            # connection.on("close", lambda _: print("DEBUG: Session Close"))  # DEBUG
-            # connection.on(
-            #     "error", lambda data: print(f"DEBUG: ElevenLabs Error Event: {data}")
-            # )  # DEBUG
 
             # Send audio loop
             while True:

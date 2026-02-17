@@ -24,4 +24,5 @@ async def twilio_inbound_webhook(request: Request):
 
 @router.websocket("/stream")
 async def twilio_stream(ws: WebSocket):
+    """WebSocket endpoint that receives Twilio's audio stream"""
     await handle_twilio_stream(ws)
