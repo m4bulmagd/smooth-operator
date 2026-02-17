@@ -13,9 +13,6 @@ class RealtimeSttClient(ABC):
         self._on_transcript = cb
 
     @abstractmethod
-    async def connect(self) -> None: ...
-
-    @abstractmethod
     async def send_audio_base64(self, audio_b64: str, sample_rate: int) -> None: ...
 
     @abstractmethod
