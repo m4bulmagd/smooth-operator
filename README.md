@@ -10,7 +10,7 @@ This project is divided into chapters, each corresponding to a lesson in the blo
 
 | Chapter | Status | Topic | Description |
 | :--- | :--- | :--- | :--- |
-| **Chapter 1** | ✅ Ready | **Hearing Ears** | Accepting inbound calls and performing real-time Speech-to-Text (STT) transcription. |
+| [**Chapter 1**](https://www.magd.dev/blog/ai-call-assistant-chapter-1-building-the-listening-layer) | ✅ Ready | **Hearing Ears** | Accepting inbound calls and performing real-time Speech-to-Text (STT) transcription. |
 | **Chapter 2** | 🚧 Planned | **The Brain** | Understanding context with LLMs, generating answers, and managing conversation history. |
 | **Chapter 3** | 🚧 Planned | **The Voice** | Speaking back to the caller using low-latency Text-to-Speech (TTS). |
 
