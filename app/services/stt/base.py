@@ -25,7 +25,20 @@ class RealtimeSttClient(ABC):
         """Decode base64 audio and enqueue raw bytes for the STT stream."""
         if self._audio_queue is not None:
             raw = base64.b64decode(audio_b64)
-            await self._audio_queue.put(raw)
+            try:
+                self._audio_queue.put_nowait(raw)
+            except asyncio.QueueFull:
+                logger.warning(
+                    "Audio queue full! Dropping oldest frame to prevent latency build-up."
+                )
+                try:
+                    self._audio_queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    pass
+                try:
+                    self._audio_queue.put_nowait(raw)
+                except asyncio.QueueFull:
+                    pass
 
     async def run_receive_loop(self) -> None:
         """Create the audio queue, build an async iterator, and delegate to subclass."""

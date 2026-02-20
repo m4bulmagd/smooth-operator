@@ -46,12 +46,12 @@ class TestDecisionFunctions:
 class TestConversationAgent:
     def _make_agent(self):
         mock_llm = AsyncMock()
-        mock_llm.generate = AsyncMock(
-            return_value=LlmResponse(
-                content="Hello! How can I help?",
-                model="test-model",
-            )
-        )
+
+        async def mock_stream(*args, **kwargs):
+            yield "Hello! "
+            yield "How can I help?"
+
+        mock_llm.generate_stream = MagicMock(return_value=mock_stream())
         mock_knowledge = AsyncMock()
         mock_knowledge.get_context = AsyncMock(return_value="Name: Test")
         mock_knowledge.load = AsyncMock()
@@ -65,17 +65,21 @@ class TestConversationAgent:
         result = await agent.process_transcript("CA_TEST", "partial", "hello")
 
         assert result is None
-        mock_llm.generate.assert_not_called()
+        mock_llm.generate_stream.assert_not_called()
 
     async def test_process_committed_generates_response(self):
         agent, mock_llm, _ = self._make_agent()
         await agent.start("CA_TEST")
-        result = await agent.process_transcript(
+        result_stream = await agent.process_transcript(
             "CA_TEST", "committed", "What's your name?"
         )
 
+        result = ""
+        async for chunk in result_stream:
+            result += chunk
+
         assert result == "Hello! How can I help?"
-        mock_llm.generate.assert_called_once()
+        mock_llm.generate_stream.assert_called_once()
 
     async def test_process_empty_text_returns_none(self):
         agent, mock_llm, _ = self._make_agent()
@@ -86,10 +90,19 @@ class TestConversationAgent:
 
     async def test_llm_failure_returns_fallback(self):
         agent, mock_llm, _ = self._make_agent()
-        mock_llm.generate = AsyncMock(side_effect=RuntimeError("API down"))
+
+        async def failing_stream(*args, **kwargs):
+            raise RuntimeError("API down")
+            yield
+
+        mock_llm.generate_stream = MagicMock(return_value=failing_stream())
 
         await agent.start("CA_TEST")
-        result = await agent.process_transcript("CA_TEST", "committed", "Hello?")
+        result_stream = await agent.process_transcript("CA_TEST", "committed", "Hello?")
+
+        result = ""
+        async for chunk in result_stream:
+            result += chunk
 
         assert "trouble" in result.lower()
 
@@ -97,14 +110,20 @@ class TestConversationAgent:
         agent, mock_llm, _ = self._make_agent()
 
         await agent.start("CA_TEST")
-        await agent.process_transcript("CA_TEST", "committed", "Hello")
-        await agent.process_transcript("CA_TEST", "committed", "How are you?")
+
+        r1 = await agent.process_transcript("CA_TEST", "committed", "Hello")
+        async for _ in r1:
+            pass
+
+        r2 = await agent.process_transcript("CA_TEST", "committed", "How are you?")
+        async for _ in r2:
+            pass
 
         # LLM should have been called twice
-        assert mock_llm.generate.call_count == 2
+        assert mock_llm.generate_stream.call_count == 2
 
         # Second call should include previous messages in context
-        second_call_messages = mock_llm.generate.call_args_list[1][1]["messages"]
+        second_call_messages = mock_llm.generate_stream.call_args_list[1][1]["messages"]
         assert len(second_call_messages) >= 3  # user + assistant + user
 
     async def test_start_loads_knowledge_once(self):
@@ -140,9 +159,13 @@ class TestConversationAgent:
         agent, mock_llm, _ = self._make_agent()
 
         with caplog.at_level(logging.WARNING):
-            result = await agent.process_transcript("UNSTARTED", "committed", "Hello")
+            result_stream = await agent.process_transcript(
+                "UNSTARTED", "committed", "Hello"
+            )
+            async for _ in result_stream:
+                pass
 
         # Should still work (auto-creates conversation)
-        assert result is not None
+        assert result_stream is not None
         # But should warn about missing start()
         assert any("before start()" in record.message for record in caplog.records)

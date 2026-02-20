@@ -1,10 +1,9 @@
 import asyncio
 import json
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch
 
 from fastapi import WebSocketDisconnect
-
 from app.services.twilio.stream import handle_twilio_stream
 
 
@@ -42,12 +41,13 @@ def _event(event_type: str, **kwargs) -> str:
 
 @pytest.mark.asyncio
 class TestHandleTwilioStream:
-    @patch("app.services.twilio.stream.SttFactory")
-    async def test_normal_flow(self, mock_factory):
+    @patch("app.services.twilio.stream.CallSession")
+    async def test_normal_flow(self, mock_session_cls):
         """connected → start → media → stop should work without errors."""
-        mock_stt = AsyncMock()
-        mock_stt.run_receive_loop = AsyncMock(return_value=None)
-        mock_factory.get_client.return_value = mock_stt
+        mock_session = mock_session_cls.return_value
+        mock_session.start = AsyncMock()
+        mock_session.process_audio = AsyncMock()
+        mock_session.shutdown = AsyncMock()
 
         messages = [
             _event("connected"),
@@ -60,17 +60,18 @@ class TestHandleTwilioStream:
         await handle_twilio_stream(ws)
 
         assert ws.accepted
-        mock_factory.get_client.assert_called_once()
-        mock_stt.set_on_transcript.assert_called_once()
-        assert mock_stt.send_audio_base64.call_count == 2
-        mock_stt.close.assert_awaited_once()
+        mock_session_cls.assert_called_once_with("CA_TEST")
+        mock_session.start.assert_awaited_once()
+        assert mock_session.process_audio.call_count == 2
+        mock_session.shutdown.assert_awaited_once()
 
-    @patch("app.services.twilio.stream.SttFactory")
-    async def test_media_before_start_is_ignored(self, mock_factory):
-        """Media events before start should be silently ignored (stt is None)."""
-        mock_stt = AsyncMock()
-        mock_stt.run_receive_loop = AsyncMock(return_value=None)
-        mock_factory.get_client.return_value = mock_stt
+    @patch("app.services.twilio.stream.CallSession")
+    async def test_media_before_start_is_ignored(self, mock_session_cls):
+        """Media events before start should be silently ignored."""
+        mock_session = mock_session_cls.return_value
+        mock_session.start = AsyncMock()
+        mock_session.process_audio = AsyncMock()
+        mock_session.shutdown = AsyncMock()
 
         messages = [
             _event("connected"),
@@ -81,15 +82,15 @@ class TestHandleTwilioStream:
         ws = FakeWebSocket(messages)
         await handle_twilio_stream(ws)
 
-        # send_audio_base64 should NOT have been called for the pre-start media
-        mock_stt.send_audio_base64.assert_not_called()
+        mock_session.process_audio.assert_not_called()
+        mock_session.shutdown.assert_awaited_once()
 
-    @patch("app.services.twilio.stream.SttFactory")
-    async def test_disconnect_triggers_cleanup(self, mock_factory):
+    @patch("app.services.twilio.stream.CallSession")
+    async def test_disconnect_triggers_cleanup(self, mock_session_cls):
         """WebSocketDisconnect should trigger proper cleanup."""
-        mock_stt = AsyncMock()
-        mock_stt.run_receive_loop = AsyncMock(return_value=None)
-        mock_factory.get_client.return_value = mock_stt
+        mock_session = mock_session_cls.return_value
+        mock_session.start = AsyncMock()
+        mock_session.shutdown = AsyncMock()
 
         messages = [
             _event("connected"),
@@ -99,9 +100,10 @@ class TestHandleTwilioStream:
         ws = FakeWebSocket(messages)
         await handle_twilio_stream(ws)
 
-        mock_stt.close.assert_awaited_once()
+        mock_session.shutdown.assert_awaited_once()
 
-    async def test_malformed_json_does_not_crash_silently(self):
+    @patch("app.services.twilio.stream.logger")
+    async def test_malformed_json_does_not_crash_silently(self, mock_logger):
         """Bad JSON should be caught by the exception handler."""
         messages = [
             _event("connected"),
@@ -112,3 +114,7 @@ class TestHandleTwilioStream:
         # Should not raise — the generic Exception handler catches it
         await handle_twilio_stream(ws)
         assert ws.accepted
+
+        mock_logger.exception.assert_called_once_with(
+            "[%s] ERROR in Twilio stream", "unknown"
+        )
