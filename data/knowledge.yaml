@@ -1,0 +1,33 @@
+# Smooth Operator — Knowledge Base
+# This file contains information the AI assistant uses to answer questions.
+# Edit this to personalize your AI phone assistant.
+
+about_me:
+  name: "Muhammad"
+  role: "Software consultant"
+  company: "Batvoice"
+  availability: "Monday to Friday, 9am to 5pm EST"
+
+services:
+  primary: "Web development, API design, system architecture"
+  technologies: "Python, TypeScript, FastAPI, React, PostgreSQL"
+  engagement_types: "Hourly consulting, fixed-price projects, retainers"
+
+pricing:
+  hourly_rate: "$200/hour"
+  minimum_engagement: "4 hours"
+  payment_terms: "Net 30, invoiced bi-weekly"
+
+policies:
+  meeting_notice: "I require 24 hours notice for meetings"
+  cancellation: "Cancellations with less than 12 hours notice may be billed"
+  timezone: "All times are in Eastern Standard Time (EST)"
+
+faq:
+  start_project: "To start a project, schedule a free 30-minute discovery call to discuss your needs"
+  turnaround: "Typical project turnaround is 2-6 weeks depending on scope"
+  contact: "Email john@doeconsulting.com or call during business hours"
+
+skills:
+  languages: "English , Arabic , French (beginner)"
+  programming: "Python, TypeScript, FastAPI, React, PostgreSQL"
