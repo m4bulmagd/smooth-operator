@@ -49,7 +49,7 @@ Follow these instructions to set up the project for **Chapter 1**.
     cp .env.example .env
     ```
     
-    Edit `.env` and fill in your keys:
+    Edit `.env` and fill in your keys and configs e.g: 
     ```ini
     ELEVENLABS_API_KEY=sk_...
     PUBLIC_BASE_URL=https://your-ngrok-url.ngrok-free.app
