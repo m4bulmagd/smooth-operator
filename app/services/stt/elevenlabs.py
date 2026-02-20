@@ -32,7 +32,7 @@ class ElevenLabsRealtimeClient(RealtimeSttClient):
         )
 
         options = {
-            "model_id": settings.elevenlabs_model_id,
+            "model_id": settings.elevenlabs_stt_model,
             "audio_format": AudioFormat.ULAW_8000,
             "sample_rate": 8000,
             "commit_strategy": cs,

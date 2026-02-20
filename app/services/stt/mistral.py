@@ -24,7 +24,7 @@ class MistralRealtimeClient(RealtimeSttClient):
 
         async for event in self.client.audio.realtime.transcribe_stream(
             audio_stream=audio_stream,
-            model=settings.mistral_model,
+            model=settings.mistral_stt_model,
             audio_format=audio_format,
         ):
             if isinstance(event, TranscriptionStreamTextDelta):

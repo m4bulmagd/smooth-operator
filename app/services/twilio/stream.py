@@ -5,6 +5,7 @@ from typing import Optional
 from fastapi import WebSocket, WebSocketDisconnect
 
 from app.schemas.twilio_stream import TwilioWsEvent
+from app.services.orchestrator.agent import ConversationAgent
 from app.services.stt.base import RealtimeSttClient
 from app.services.stt.factory import SttFactory
 
@@ -17,6 +18,7 @@ async def handle_twilio_stream(ws: WebSocket) -> None:
     call_sid = "unknown"
     stt: Optional[RealtimeSttClient] = None
     recv_task: Optional[asyncio.Task] = None
+    agent: Optional[ConversationAgent] = None
 
     async def on_transcript(kind: str, text: str) -> None:
         # "kind" is partial/committed
@@ -25,6 +27,16 @@ async def handle_twilio_stream(ws: WebSocket) -> None:
                 print(f"\r[{call_sid}] PARTIAL: {text}", end="", flush=True)
             else:
                 print(f"\r[{call_sid}] COMMITTED: {text}")
+
+            # Send to conversation agent for LLM processing
+            if agent:
+                response = await agent.process_transcript(
+                    call_sid=call_sid,
+                    kind=kind,
+                    text=text,
+                )
+                if response:
+                    print(f"[{call_sid}] ASSISTANT: {response}")
 
     try:
         while True:
@@ -44,6 +56,10 @@ async def handle_twilio_stream(ws: WebSocket) -> None:
 
                 recv_task = asyncio.create_task(stt.run_receive_loop())
 
+                # Start the brain
+                agent = ConversationAgent()
+                await agent.start(call_sid)
+
             elif event.event == "media":
                 if not stt or not event.media:
                     continue
@@ -59,6 +75,9 @@ async def handle_twilio_stream(ws: WebSocket) -> None:
     except Exception:
         logger.exception("[%s] ERROR in Twilio stream", call_sid)
     finally:
+        if agent:
+            await agent.stop(call_sid)
+            await agent.shutdown()
         if stt:
             await stt.close()
         if recv_task:

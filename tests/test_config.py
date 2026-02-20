@@ -14,6 +14,7 @@ class TestSettingsValidation:
         env = {
             "PUBLIC_BASE_URL": "https://example.com",
             "ELEVENLABS_API_KEY": "sk_test_123",
+            "GEMINI_API_KEY": "gk_test_123",
             **{k.upper(): v for k, v in overrides.items()},
         }
         with patch.dict(os.environ, env, clear=False):
@@ -64,3 +65,35 @@ class TestSettingsValidation:
     def test_invalid_provider_rejected(self):
         with pytest.raises(ValidationError):
             self._make_settings(stt_provider="invalid_provider")
+
+    # ===== LLM Provider Validation =====
+
+    def test_valid_gemini_config(self):
+        s = self._make_settings(llm_provider="gemini", gemini_api_key="gk_test")
+        assert s.llm_provider == "gemini"
+        assert s.gemini_api_key == "gk_test"
+
+    def test_valid_mistral_llm_config(self):
+        s = self._make_settings(llm_provider="mistral", mistral_api_key="mk_test")
+        assert s.llm_provider == "mistral"
+
+    def test_missing_gemini_key_raises(self):
+        with pytest.raises(ValidationError, match="GEMINI_API_KEY"):
+            env = {
+                "PUBLIC_BASE_URL": "https://example.com",
+                "ELEVENLABS_API_KEY": "sk_test",
+                "LLM_PROVIDER": "gemini",
+            }
+            with patch.dict(os.environ, env, clear=False):
+                real_key = os.environ.pop("GEMINI_API_KEY", None)
+                try:
+                    from app.core.config import Settings
+
+                    Settings(_env_file=None)
+                finally:
+                    if real_key is not None:
+                        os.environ["GEMINI_API_KEY"] = real_key
+
+    def test_invalid_llm_provider_rejected(self):
+        with pytest.raises(ValidationError):
+            self._make_settings(llm_provider="invalid_llm")
