@@ -10,9 +10,9 @@ This project is divided into chapters, each corresponding to a lesson in the blo
 
 | Chapter | Status | Topic | Description |
 | :--- | :--- | :--- | :--- |
-| [**Chapter 1**](https://www.magd.dev/blog/ai-call-assistant-chapter-1-building-the-listening-layer) | ✅ Done | **Hearing Ears** | Accepting inbound calls and performing real-time Speech-to-Text (STT) transcription. |
-| **Chapter 2** | ✅ Done | **The Brain** | Understanding context with LLMs, generating answers, and managing conversation history. |
-| **Chapter 3** | 🚧 Planned | **The Voice** | Speaking back to the caller using low-latency Text-to-Speech (TTS). |
+| [**Chapter 1**](https://www.magd.dev/blog/ai-call-assistant-chapter-1-building-the-listening-layer) | ✅ Done | **The Listening Layer** | Accepting inbound calls and performing real-time Speech-to-Text (STT) transcription. |
+| [**Chapter 2**](https://www.magd.dev/blog/building-an-ai-call-assistant-chapter-2-the-intelligence-layer) | ✅ Done | **The Intelligence Layer** | Understanding context with LLMs, generating answers, and managing conversation history. |
+| **Chapter 3** | 🚧 Planned | **The Voice Layer** | Speaking back to the caller using low-latency Text-to-Speech (TTS). |
 
 ---
 
