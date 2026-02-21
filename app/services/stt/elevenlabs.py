@@ -21,7 +21,20 @@ class ElevenLabsRealtimeClient(RealtimeSttClient):
     async def send_audio_base64(self, audio_b64: str, sample_rate: int = 8000) -> None:
         """ElevenLabs SDK expects base64, so skip the decode/re-encode — pass through directly."""
         if self._audio_queue is not None:
-            await self._audio_queue.put(audio_b64)
+            try:
+                self._audio_queue.put_nowait(audio_b64)
+            except asyncio.QueueFull:
+                logger.warning(
+                    "ElevenLabs audio queue full! Dropping oldest frame to prevent latency build-up."
+                )
+                try:
+                    self._audio_queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    pass
+                try:
+                    self._audio_queue.put_nowait(audio_b64)
+                except asyncio.QueueFull:
+                    pass
 
     async def _run_stt_stream(self, audio_stream: AsyncIterator[bytes]) -> None:
         commit_strategy_str = settings.elevenlabs_commit_strategy
@@ -40,10 +53,24 @@ class ElevenLabsRealtimeClient(RealtimeSttClient):
 
         connection = await self.client.speech_to_text.realtime.connect(options)
 
+        loop = asyncio.get_running_loop()
+
         def handle_transcript(data: dict, kind: str) -> None:
             text = data.get("text") or data.get("transcript") or ""
             if self._on_transcript and text:
-                asyncio.create_task(self._on_transcript(kind, text))
+                future = asyncio.run_coroutine_threadsafe(
+                    self._on_transcript(kind, text), loop
+                )
+
+                def on_done(f):
+                    try:
+                        f.result()
+                    except Exception as e:
+                        logger.error(
+                            "ElevenLabs callback crashed: %s", e, exc_info=True
+                        )
+
+                future.add_done_callback(on_done)
 
         connection.on(
             "partial_transcript", lambda data: handle_transcript(data, "partial")

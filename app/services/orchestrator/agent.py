@@ -1,4 +1,5 @@
 import logging
+from typing import AsyncIterator
 
 from app.core.config import settings
 from app.services.conversation.manager import ConversationManager
@@ -50,10 +51,10 @@ class ConversationAgent:
 
     async def process_transcript(
         self, call_sid: str, kind: str, text: str
-    ) -> str | None:
+    ) -> AsyncIterator[str] | None:
         """Process an incoming STT transcript.
 
-        Returns the LLM response text if a response was generated, else None.
+        Returns an async iterator of LLM response chunks, or None.
         """
         if not should_respond(kind):
             return None
@@ -72,30 +73,31 @@ class ConversationAgent:
         # Add user message to conversation history
         self._conversations.add_user_message(call_sid, text)
 
-        # Generate and return the response
-        response_text = await self._generate_response(call_sid)
-        return response_text
+        # Generate and return the response implicitly (as an async generator)
+        return self._generate_response(call_sid)
 
-    async def _generate_response(self, call_sid: str) -> str:
-        """Assemble context and call the LLM."""
+    async def _generate_response(self, call_sid: str) -> AsyncIterator[str]:
+        """Assemble context and call the LLM, streaming output."""
         messages = self._conversations.get_messages(call_sid)
         system_prompt = self._system_prompts.get(call_sid, build_system_prompt(""))
 
+        full_response = ""
         try:
-            response = await self._llm.generate(
+            async for chunk in self._llm.generate_stream(
                 messages=messages,
                 system_prompt=system_prompt,
-            )
-            assistant_text = response.content
+            ):
+                full_response += chunk
+                yield chunk
         except Exception:
             logger.exception("[%s] LLM generation failed", call_sid)
-            assistant_text = "I'm sorry, I'm having trouble processing that right now."
+            fallback = "I'm sorry, I'm having trouble processing that right now."
+            full_response += fallback
+            yield fallback
 
         # Store the assistant's reply in conversation history
-        self._conversations.add_assistant_message(call_sid, assistant_text)
-
-        logger.info("[%s] ASSISTANT: %s", call_sid, assistant_text)
-        return assistant_text
+        self._conversations.add_assistant_message(call_sid, full_response)
+        logger.info("[%s] ASSISTANT completion stored", call_sid)
 
     async def stop(self, call_sid: str) -> None:
         """Remove conversation state for a single call."""
